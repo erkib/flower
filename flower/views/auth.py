@@ -6,6 +6,7 @@ import re
 try:
     from urllib.parse import urlencode
 except ImportError:
+    # noinspection PyUnresolvedReferences
     from urllib import urlencode
 
 import tornado.gen
@@ -16,6 +17,7 @@ from tornado.options import options
 from celery.utils.imports import instantiate
 
 from ..views import BaseHandler
+from ..views.ldaps import LdapManager, LdapError
 
 
 class GoogleAuth2LoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
@@ -34,7 +36,7 @@ class GoogleAuth2LoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
             yield self.authorize_redirect(
                 redirect_uri=redirect_uri,
                 client_id=self.settings[self._OAUTH_SETTINGS_KEY]['key'],
-                scope=['profile', 'email'],
+                scope='profile,email',
                 response_type='code',
                 extra_params={'approval_prompt': 'auto'}
             )
@@ -63,7 +65,7 @@ class GoogleAuth2LoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
         self.set_secure_cookie("user", str(email))
 
         next_ = self.get_argument('next', self.application.options.url_prefix or '/')
-        if self.application.options.url_prefix and next[0] != '/':
+        if self.application.options.url_prefix and next_[0] != '/':
             next_ = '/' + next_
 
         self.redirect(next_)
@@ -116,7 +118,7 @@ class GithubLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
             yield self.authorize_redirect(
                 redirect_uri=redirect_uri,
                 client_id=self.settings[self._OAUTH_SETTINGS_KEY]['key'],
-                scope=['user:email'],
+                scope='user:email',
                 response_type='code',
                 extra_params={'approval_prompt': 'auto'}
             )
@@ -131,7 +133,6 @@ class GithubLoginHandler(BaseHandler, tornado.auth.OAuth2Mixin):
             'https://api.github.com/user/emails',
             headers={'Authorization': 'token ' + access_token,
                      'User-agent': 'Tornado auth'})
-
 
         emails = [email['email'].lower() for email in json.loads(response.body.decode('utf-8'))
                   if email['verified'] and re.match(self.application.options.auth, email['email'])]
@@ -155,3 +156,33 @@ class LogoutHandler(BaseHandler):
     def get(self):
         self.clear_cookie('user')
         self.render('404.html', message='Successfully logged out!')
+
+
+class LdapLoginHandler(BaseHandler):
+    def get(self):
+        self.render('login.html', errors=[])
+
+    def post(self):
+        errors = []
+        username = self.get_argument('username')
+        password = self.get_argument('password')
+        if not username:
+            errors.append('Username is required')
+        if not password:
+            errors.append('Password is required')
+        if errors:
+            self.render('login.html', errors=errors)
+            return
+
+        try:
+            ldap_manager = LdapManager(**self.settings.get('ldap'))
+            user = ldap_manager.login(username, password)
+            self.set_secure_cookie("user", json.dumps(user))
+
+            next_ = self.get_argument('next', self.application.options.url_prefix or '/')
+            if self.application.options.url_prefix and next_[0] != '/':
+                next_ = '/' + next_
+            self.redirect(next_)
+
+        except LdapError as err:
+            self.render('login.html', errors=[str(err)])

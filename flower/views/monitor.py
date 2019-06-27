@@ -2,13 +2,13 @@ from __future__ import absolute_import
 
 from collections import defaultdict
 
-from tornado import web
-from tornado import gen
 from celery import states
+from tornado import gen
+from tornado import web
 
-from ..views import BaseHandler
-from ..utils.broker import Broker
 from ..api.control import ControlHandler
+from ..utils.broker import Broker
+from ..views import BaseHandler
 
 
 class Monitor(BaseHandler):
@@ -25,12 +25,14 @@ class SucceededTaskMonitor(BaseHandler):
 
         data = defaultdict(int)
         for _, task in state.itertasks():
-            if (timestamp < task.timestamp and task.state == states.SUCCESS):
+            if timestamp < task.timestamp and task.state == states.SUCCESS:
                 data[task.worker.hostname] += 1
         for worker in state.workers:
             if worker not in data:
                 data[worker] = 0
 
+        if not data:
+            data['No host'] = 0
         self.write(data)
 
 
@@ -44,13 +46,12 @@ class TimeToCompletionMonitor(BaseHandler):
         queue_time = 0
         num_tasks = 0
         for _, task in state.itertasks():
-            if (timestamp < task.timestamp and task.state == states.SUCCESS):
+            if timestamp < task.timestamp and task.state == states.SUCCESS:
                 # eta can make "time in queue" look really scary.
                 if task.eta is not None:
                     continue
 
-                if task.started is None or task.received is None or\
-                        task.succeeded is None:
+                if task.started is None or task.received is None or task.succeeded is None:
                     continue
 
                 queue_time += task.started - task.received
@@ -75,12 +76,14 @@ class FailedTaskMonitor(BaseHandler):
 
         data = defaultdict(int)
         for _, task in state.itertasks():
-            if (timestamp < task.timestamp and task.state == states.FAILURE):
+            if timestamp < task.timestamp and task.state == states.FAILURE:
                 data[task.worker.hostname] += 1
         for worker in state.workers:
             if worker not in data:
                 data[worker] = 0
 
+        if not data:
+            data['No host'] = 0
         self.write(data)
 
 
@@ -105,4 +108,6 @@ class BrokerMonitor(BaseHandler):
         for queue in queues:
             data[queue['name']] = queue.get('messages', 0)
 
+        if not data:
+            data['No host'] = 0
         self.write(data)

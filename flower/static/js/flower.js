@@ -569,7 +569,6 @@ var flower = (function () {
                             sts);
                         sts = current_unix_time();
                     }, updateinterval);
-
                 },
             });
 
@@ -590,7 +589,6 @@ var flower = (function () {
                             tts);
                         tts = current_unix_time();
                     }, updateinterval);
-
                 },
             });
 
@@ -611,7 +609,6 @@ var flower = (function () {
                             fts);
                         fts = current_unix_time();
                     }, updateinterval);
-
                 },
             });
 
@@ -627,12 +624,9 @@ var flower = (function () {
                         update_graph(broker_graph,
                             url_prefix() + '/monitor/broker');
                     }, updateinterval);
-
                 },
             });
-
         }
-
     });
 
     $(document).ready(function () {

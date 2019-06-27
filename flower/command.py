@@ -1,27 +1,24 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import os
-import sys
 import atexit
-import signal
 import logging
-
+import os
+import signal
+import sys
+from logging import NullHandler
 from pprint import pformat
 
-from logging import NullHandler
-
+from celery.bin.base import Command
+from tornado.log import enable_pretty_logging
 from tornado.options import options
 from tornado.options import parse_command_line, parse_config_file
-from tornado.log import enable_pretty_logging
-from celery.bin.base import Command
 
 from . import __version__
 from .app import Flower
+from .options import DEFAULT_CONFIG_FILE, default_options
 from .urls import settings
 from .utils import abs_path, prepend_url
-from .options import DEFAULT_CONFIG_FILE, default_options
-
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +53,7 @@ class FlowerCommand(Command):
         return self.run_from_argv(prog_name, argv)
 
     def apply_env_options(self):
-        "apply options passed through environment variables"
+        """apply options passed through environment variables"""
         env_options = filter(self.is_flower_envvar, os.environ)
         for env_var_name in env_options:
             name = env_var_name.replace(self.ENV_VAR_PREFIX, '', 1).lower()
@@ -72,7 +69,7 @@ class FlowerCommand(Command):
             setattr(options, name, value)
 
     def apply_options(self, prog_name, argv):
-        "apply options passed through the configuration file"
+        """apply options passed through the configuration file"""
         argv = list(filter(self.is_flower_option, argv))
         # parse the command line to get --conf option
         parse_command_line([prog_name] + argv)
@@ -113,6 +110,21 @@ class FlowerCommand(Command):
                                            keyfile=abs_path(options.keyfile))
             if options.ca_certs:
                 settings['ssl_options']['ca_certs'] = abs_path(options.ca_certs)
+
+        if (options.ldap_server_uri and options.ldap_bind_dn and options.ldap_bind_password and
+                options.ldap_user_search_base and options.ldap_user_search_criteria):
+            settings['ldap'] = {
+                'ldap_server_uri': options.ldap_server_uri,
+                'ldap_bind_dn': options.ldap_bind_dn,
+                'ldap_bind_password': options.ldap_bind_password,
+                'ldap_user_search_base': options.ldap_user_search_base,
+                'ldap_user_search_criteria': options.ldap_user_search_criteria,
+                'ldap_allowed_groups': [],
+            }
+            if options.ldap_allowed_groups:
+                settings['ldap'].update({
+                    'ldap_allowed_groups': options.ldap_allowed_groups,
+                })
 
     def early_version(self, argv):
         if '--version' in argv:

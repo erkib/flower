@@ -5,7 +5,6 @@ import types
 from tornado.options import define
 from tornado.options import options
 
-
 DEFAULT_CONFIG_FILE = 'flowerconfig.py'
 
 
@@ -65,6 +64,12 @@ define("tasks_columns", type=str,
 define("auth_provider", default='flower.views.auth.GoogleAuth2LoginHandler',
        help="auth handler class")
 define("url_prefix", type=str, help="base url prefix")
+define("ldap_server_uri", type=str, default=None, help="ldap server uri")
+define("ldap_bind_dn", type=str, default=None, help="ldap user for searching")
+define("ldap_bind_password", type=str, default=None, help="ldap user password for searching")
+define("ldap_user_search_base", type=str, default=None, help="ldap base DN for user searching")
+define("ldap_user_search_criteria", type=str, default=None, help="ldap criteria for user searching")
+define("ldap_allowed_groups", type=list, default=[], help="ldap allowed groups DN-s to login")
 
 # deprecated options
 define("inspect", default=False, help="inspect workers", type=bool)

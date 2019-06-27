@@ -1,0 +1,24 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[scripts]
+flower = "./flower.py"
+
+[dev-packages]
+mock = "*"
+
+[packages]
+celery = ">=4.3.0"
+tornado = "<7.0.0,>=5.0.0"
+humanize = "==0.5.1"
+pytz = "*"
+futures = "*"
+redis = "<4.0.0"
+python-ldap-win = {file = "https://download.lfd.uci.edu/pythonlibs/t4jqbe6o/python_ldap-3.2.0-cp37-cp37m-win_amd64.whl",sys_platform = "== 'win32'"}
+python-ldap = {version = "==3.2.0",sys_platform = "== 'linux'"}
+# mac users should follow the instruction in python-ldap installation manual
+
+[requires]
+python_version = "3.7"

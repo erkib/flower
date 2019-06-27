@@ -1,21 +1,18 @@
 from __future__ import absolute_import
 
 import logging
-
-from functools import partial
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 import celery
 import tornado.web
-
 from tornado import ioloop
 from tornado.httpserver import HTTPServer
 
 from .api import control
-from .urls import handlers
 from .events import Events
 from .options import default_options
-
+from .urls import handlers
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +21,10 @@ class Flower(tornado.web.Application):
     pool_executor_cls = ThreadPoolExecutor
     max_workers = 4
 
-    def __init__(self, options=None, capp=None, events=None,
-                 io_loop=None, **kwargs):
+    def __init__(self, options=None, capp=None, events=None, io_loop=None, **kwargs):
         kwargs.update(handlers=handlers)
         super(Flower, self).__init__(**kwargs)
+        self.pool = None
         self.options = options or default_options
         self.io_loop = io_loop or ioloop.IOLoop.instance()
         self.ssl_options = kwargs.get('ssl_options', None)
@@ -74,5 +71,4 @@ class Flower(tornado.web.Application):
 
     @property
     def transport(self):
-        return getattr(self.capp.connection().transport,
-                       'driver_type', None)
+        return getattr(self.capp.connection().transport, 'driver_type', None)
